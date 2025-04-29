@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <title>台灣空氣品質指標 AQI 圖表</title>
+  <!-- 引入 Google Charts 程式庫 -->
+  <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
+</head>
+<body>
+  <h2>全台空氣品質指標（AQI）視覺化</h2>
+  <div id="chart_div" style="width: 100%; height: 600px;"></div>
+
+  <script>
+    // 替換為你的 API 金鑰
+    const apiKey = 'a6528ecc-9e31-4e96-9f4a-8410d0c54436';
+    const apiUrl = `https://data.moenv.gov.tw/api/v2/aqx_p_432?format=json&offset=0&limit=1000&api_key=${apiKey}`;
+
+    // 載入 Google Charts
+    google.charts.load('current', { packages: ['corechart'] });
+    google.charts.setOnLoadCallback(fetchAQIData);
+
+    // 抓取 AQI 資料
+    function fetchAQIData() {
+      fetch(apiUrl)
+        .then(response => {
+          if (!response.ok) throw new Error("API 錯誤: " + response.status);
+          return response.json();
+        })
+        .then(json => {
+          const records = json.records;
+          const chartData = transformData(records);
+          drawChart(chartData);
+        })
+        .catch(err => {
+          console.error("資料擷取失敗:", err);
+          document.getElementById('chart_div').innerText = "資料無法載入，請檢查 API 金鑰或網路連線。";
+        });
+    }
+
+    // 整理資料格式給 Google Charts
+    function transformData(records) {
+      const dataArray = [['測站名稱', 'AQI']];
+
+      records.forEach(r => {
+        const value = parseFloat(r.aqi);
+        if (!isNaN(value)) {
+          dataArray.push([r.sitename, value]);
+        }
+      });
+
+      return dataArray;
+    }
+
+    // 畫出圖表
+    function drawChart(dataArray) {
+      const data = google.visualization.arrayToDataTable(dataArray);
+
+      const options = {
+        title: '全台各測站即時 AQI 指數',
+        hAxis: { title: '測站名稱' },
+        vAxis: { title: 'AQI 數值', minValue: 0 },
+        legend: 'none',
+        height: 600,
+        colors: ['#1e88e5']
+      };
+
+      const chart = new google.visualization.ColumnChart(document.getElementById('chart_div'));
+      chart.draw(data, options);
+    }
+  </script>
+</body>
+</html>
