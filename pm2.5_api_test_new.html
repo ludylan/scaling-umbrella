@@ -1,129 +1,110 @@
+
 <!DOCTYPE html>
 <html>
   <head>
     <meta charset="utf-8" />
-    <title>空氣品質指標圖表</title>
-    <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
-    <script type="text/javascript">
-      google.charts.load('current', { packages: ['corechart'] });
-      google.charts.setOnLoadCallback(() => {
-        fetchAQIData();
-        setInterval(fetchAQIData, 3600000);
-      });
-
-      let allRecords = [];
-
-      function fetchAQIData() {
-        const apiKey = 'a6528ecc-9e31-4e96-9f4a-8410d0c54436'; // ← 請替換為你的 API 金鑰
-        const apiUrl = `https://data.moenv.gov.tw/api/v2/aqx_p_488?limit=1000&api_key=${apiKey}`;
-
-        fetch(apiUrl)
-          .then((response) => response.json())
-          .then((json) => {
-            allRecords = json.records;
-            populateCountyOptions(allRecords);
-            updateChart();
-            document.getElementById("update_time").textContent =
-              "最後更新時間：" + new Date().toLocaleString();
-          })
-          .catch((error) => {
-            console.error('資料擷取失敗:', error);
-          });
+    <title>台灣空氣品質地圖</title>
+    <link
+      rel="stylesheet"
+      href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+    />
+    <style>
+      #map {
+        height: 90vh;
+        width: 100%;
       }
-
-      function populateCountyOptions(records) {
-        const countySet = new Set(records.map(r => r.county).filter(Boolean));
-        const select = document.getElementById("county_select");
-        select.innerHTML = '<option value="all">全部縣市</option>';
-        [...countySet].sort().forEach(county => {
-          const option = document.createElement("option");
-          option.value = county;
-          option.textContent = county;
-          select.appendChild(option);
-        });
+      body {
+        font-family: sans-serif;
       }
-
-      function updateChart() {
-        const selectedCounty = document.getElementById("county_select").value;
-        const filtered = selectedCounty === 'all'
-          ? allRecords
-          : allRecords.filter(r => r.county === selectedCounty);
-        const chartData = transformData(filtered);
-        drawChart(chartData);
+      .info {
+        padding: 6px;
+        background: #f0f8ff;
+        border-radius: 4px;
+        margin: 10px;
       }
-
-      function transformData(records) {
-        const dataArray = [
-          [
-            '測站名稱',
-            '縣市',
-            'AQI',
-            '污染物',
-            '狀態',
-            'SO₂(ppb)',
-            'CO(ppm)',
-            'O₃(ppb)',
-            'O₃_8hr(ppb)',
-            'PM10(μg/m³)',
-            'PM2.5(μg/m³)',
-            'NO₂(ppb)',
-            'NOx(ppb)',
-            'NO(ppb)',
-            '風速(m/s)',
-            '風向(°)',
-            '資料時間'
-          ]
-        ];
-
-        records.forEach((r) => {
-          dataArray.push([
-            r.sitename,
-            r.county,
-            parseFloat(r.aqi),
-            r.pollutant,
-            r.status,
-            parseFloat(r.so2),
-            parseFloat(r.co),
-            parseFloat(r.o3),
-            parseFloat(r.o3_8hr),
-            parseFloat(r.pm10),
-            parseFloat(r.pm2_5),
-            parseFloat(r.no2),
-            parseFloat(r.nox),
-            parseFloat(r.no),
-            parseFloat(r.windspeed),
-            parseFloat(r.winddirec),
-            r.datacreationdate
-          ]);
-        });
-
-        return dataArray;
-      }
-
-      function drawChart(chartData) {
-        const data = google.visualization.arrayToDataTable(chartData);
-        const options = {
-          title: '空氣品質（以 AQI 為主）',
-          hAxis: { title: '測站名稱' },
-          vAxis: { title: 'AQI' },
-          legend: 'none',
-          height: 600,
-        };
-
-        const chart = new google.visualization.ColumnChart(
-          document.getElementById('chart_div')
-        );
-        chart.draw(data, options);
-      }
-    </script>
+    </style>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   </head>
   <body>
-    <h1>台灣空氣品質資訊展示</h1>
-    <div id="update_time" style="margin-bottom: 10px; color: gray;"></div>
+    <h2>🌏 台灣空氣品質地圖</h2>
+    <div class="info">
+      顯示污染物：
+      <select id="pollutantSelect">
+        <option value="aqi">AQI</option>
+        <option value="pm2_5">PM2.5</option>
+        <option value="pm10">PM10</option>
+        <option value="o3">O₃</option>
+        <option value="co">CO</option>
+        <option value="so2">SO₂</option>
+        <option value="no2">NO₂</option>
+      </select>
+    </div>
+    <div id="map"></div>
 
-    <label for="county_select">選擇縣市：</label>
-    <select id="county_select" onchange="updateChart()"></select>
+    <script>
+      const apiKey = 'your-api-key'; // ← 請替換為你的 API 金鑰
+      const apiUrl = `https://data.moenv.gov.tw/api/v2/aqx_p_488?limit=1000&api_key=${apiKey}`;
 
-    <div id="chart_div" style="width: 100%; height: 600px"></div>
+      const map = L.map('map').setView([23.7, 121], 7);
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; OpenStreetMap'
+      }).addTo(map);
+
+      let markerLayer = L.layerGroup().addTo(map);
+
+      fetch(apiUrl)
+        .then((res) => res.json())
+        .then((json) => {
+          const records = json.records;
+          renderMarkers(records);
+          document.getElementById("pollutantSelect").addEventListener("change", () => renderMarkers(records));
+        });
+
+      function renderMarkers(data) {
+        markerLayer.clearLayers();
+        const pollutant = document.getElementById("pollutantSelect").value;
+
+        data.forEach((item) => {
+          const lat = parseFloat(item.latitude);
+          const lon = parseFloat(item.longitude);
+          const value = parseFloat(item[pollutant]);
+          if (!lat || !lon || isNaN(value)) return;
+
+          const color = getColor(value, pollutant);
+          const circle = L.circleMarker([lat, lon], {
+            radius: 8,
+            fillColor: color,
+            color: '#333',
+            weight: 1,
+            fillOpacity: 0.8,
+          }).addTo(markerLayer);
+
+          const popupContent = `
+            <strong>${item.sitename}（${item.county}）</strong><br/>
+            ${pollutant.toUpperCase()}：${value}<br/>
+            狀態：${item.status}<br/>
+            時間：${item.datacreationdate}
+          `;
+          circle.bindPopup(popupContent);
+        });
+      }
+
+      function getColor(value, pollutant) {
+        // 使用「大自然」色系：綠 → 黃 → 橘 → 紅 → 紫
+        const scale = [
+          { max: 12, color: '#2E8B57' },   // 深綠
+          { max: 35, color: '#9ACD32' },   // 黃綠
+          { max: 54, color: '#FFD700' },   // 金黃
+          { max: 150, color: '#FFA500' },  // 橘
+          { max: 250, color: '#FF4500' },  // 橘紅
+          { max: Infinity, color: '#8B008B' } // 紫
+        ];
+
+        for (let i = 0; i < scale.length; i++) {
+          if (value <= scale[i].max) return scale[i].color;
+        }
+        return '#000';
+      }
+    </script>
   </body>
 </html>
