@@ -17,7 +17,13 @@
 
     // 載入 Google Charts
     google.charts.load('current', { packages: ['corechart'] });
-    google.charts.setOnLoadCallback(fetchAQIData);
+    google.charts.setOnLoadCallback(() => {
+    fetchAQIData(); // 第一次載入時執行一次
+
+     // 每 1 小時（3600000 毫秒）更新一次資料
+      setInterval(fetchAQIData, 3600000);
+});
+
 
     // 抓取 AQI 資料
     function fetchAQIData() {
