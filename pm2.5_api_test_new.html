@@ -1,7 +1,8 @@
 <!DOCTYPE html>
-<html>
+<html lang="zh-Hant">
   <head>
-    <meta charset="utf-8" />
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>台灣空氣品質地圖</title>
     <link
       rel="stylesheet"
@@ -11,32 +12,96 @@
       rel="stylesheet"
       href="https://cdn.jsdelivr.net/npm/chart.js@3.7.0/dist/chart.min.css"
     />
+    <script src="https://unpkg.com/leaflet.heat@0.2.0/dist/leaflet-heat.js"></script>
     <style>
-      #map {
-        height: 70vh;
-        width: 100%;
-        border-radius: 8px;
-        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-      }
       body {
         font-family: 'Microsoft JhengHei', sans-serif;
         margin: 0;
+        padding: 0;
+        background: #f5f5f5;
+      }
+      .top-container {
+        display: flex;
+        width: 100%;
+        height: 40vh;
+      }
+      .left-panel {
+        width: 75%;
         padding: 20px;
-        background-color: #f5f5f5;
+        box-sizing: border-box;
+      }
+      .right-panel {
+        position: relative;
+        width: 25%;
+      }
+      #map {
+        position: absolute;
+        top: 0;
+        right: 0;
+        width: 25vw;
+        height: 40vh;
+        border-radius: 8px;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
       }
       .info {
-        padding: 15px;
-        background: #ffffff;
-        border-radius: 8px;
+        margin-bottom: 20px;
+      }
+      h1 {
+        margin: 0;
+        font-size: 24px;
+      }
+      .selector, .update-time {
         margin: 10px 0;
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
+      }
+      .pointer-panel {
+        position: relative;
+        width: 200px;
+        height: 200px;
+        background: #fff;
+        border-radius: 8px;
+        padding: 10px;
+        box-shadow: 0 0 8px rgba(0,0,0,0.2);
+      }
+      #pointerCanvas {
+        width: 100%;
+        height: 100%;
+      }
+      .station-info {
+        font-size: 0.9em;
+        color: #333;
+        margin-top: 8px;
+      }
+      .bottom-container {
+        width: 100%;
+        height: 60vh;
+        padding: 20px;
+        box-sizing: border-box;
+      }
+      .chart-container {
+        width: 100%;
+        height: 100%;
+        background: #fff;
+        border-radius: 8px;
+        padding: 15px;
         box-shadow: 0 2px 5px rgba(0,0,0,0.05);
       }
-      .last-update {
-        font-size: 0.9em;
-        color: #666;
+      #trendChart {
+        width: 100%;
+        height: 100%;
+      }
+      .map-controls {
+        position: absolute;
+        top: 10px;
+        right: 10px;
+        z-index: 1000;
+      }
+      .map-controls button {
+        margin: 0 5px;
+        padding: 5px 8px;
+        border: none;
+        background: #f0f0f0;
+        border-radius: 4px;
+        cursor: pointer;
       }
       .loading {
         display: none;
@@ -50,101 +115,44 @@
         box-shadow: 0 4px 15px rgba(0,0,0,0.1);
         z-index: 1000;
       }
-      .chart-container {
-        margin-top: 20px;
-        padding: 15px;
-        background: #ffffff;
-        border-radius: 8px;
-        box-shadow: 0 2px 5px rgba(0,0,0,0.05);
-      }
-      .map-controls {
-        position: absolute;
-        top: 10px;
-        right: 10px;
-        z-index: 1000;
-        background: white;
-        padding: 5px;
-        border-radius: 4px;
-        box-shadow: 0 2px 5px rgba(0,0,0,0.2);
-      }
-      .map-controls button {
-        margin: 5px;
-        padding: 5px 10px;
-        border: none;
-        background: #f0f0f0;
-        border-radius: 4px;
-        cursor: pointer;
-        transition: all 0.3s ease;
-      }
-      .map-controls button:hover {
-        background: #e0e0e0;
-        transform: scale(1.1);
-      }
-      .legend {
-        position: absolute;
-        bottom: 20px;
-        right: 20px;
-        z-index: 1000;
-        background: white;
-        padding: 10px;
-        border-radius: 4px;
-        box-shadow: 0 2px 5px rgba(0,0,0,0.2);
-      }
-      .legend-item {
-        display: flex;
-        align-items: center;
-        margin: 5px 0;
-        transition: all 0.3s ease;
-      }
-      .legend-item:hover {
-        transform: translateX(5px);
-      }
-      .legend-color {
-        width: 20px;
-        height: 20px;
-        margin-right: 10px;
-        border-radius: 50%;
-        transition: all 0.3s ease;
-      }
-      .legend-item:hover .legend-color {
-        transform: scale(1.2);
-      }
-      .marker-fade-in {
-        animation: fadeIn 0.5s ease-in;
-      }
-      @keyframes fadeIn {
-        from { opacity: 0; transform: scale(0.8); }
-        to { opacity: 1; transform: scale(1); }
-      }
     </style>
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@3.7.0/dist/chart.min.js"></script>
   </head>
   <body>
-    <h2>🌏 台灣空氣品質地圖</h2>
-    <div class="info">
-      <div>
-        顯示污染物：
-        <select id="pollutantSelect">
-          <option value="aqi">AQI</option>
-          <option value="pm2_5">PM2.5</option>
-          <option value="pm10">PM10</option>
-          <option value="o3">O₃</option>
-          <option value="co">CO</option>
-          <option value="so2">SO₂</option>
-          <option value="no2">NO₂</option>
-        </select>
+    <div class="top-container">
+      <div class="left-panel">
+        <h1>🌏 台灣空氣品質地圖</h1>
+        <div class="update-time" id="lastUpdate"></div>
+        <div class="selector">
+          顯示污染物：
+          <select id="pollutantSelect">
+            <option value="aqi">AQI</option>
+            <option value="pm2_5">PM2.5</option>
+            <option value="pm10">PM10</option>
+            <option value="o3">O₃</option>
+            <option value="co">CO</option>
+            <option value="so2">SO₂</option>
+            <option value="no2">NO₂</option>
+          </select>
+        </div>
+        <div class="pointer-panel">
+          <canvas id="pointerCanvas" width="200" height="200"></canvas>
+          <div class="station-info" id="stationInfo"></div>
+        </div>
       </div>
-      <div class="last-update" id="lastUpdate"></div>
+      <div class="right-panel">
+        <div id="map"></div>
+        <div class="map-controls">
+          <button onclick="zoomIn()">+</button>
+          <button onclick="zoomOut()">-</button>
+        </div>
+      </div>
     </div>
-    <div id="map"></div>
-    <div class="map-controls">
-      <button onclick="zoomIn()">+</button>
-      <button onclick="zoomOut()">-</button>
-    </div>
-    <div class="legend" id="legend"></div>
-    <div class="chart-container">
-      <canvas id="trendChart"></canvas>
+    <div class="bottom-container">
+      <div class="chart-container">
+        <canvas id="trendChart"></canvas>
+      </div>
     </div>
     <div class="loading" id="loading">資料更新中...</div>
 
@@ -153,21 +161,17 @@
       const apiUrl = `https://data.moenv.gov.tw/api/v2/aqx_p_488?limit=1000&api_key=${apiKey}`;
       let currentData = null;
       let trendChart = null;
+      let heatLayer = null;
+      let lastFetchTime = 0;
+      const CACHE_DURATION = 5 * 60 * 1000; // 5分鐘快取
 
       const map = L.map('map').setView([23.7, 121], 7);
       L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '&copy; OpenStreetMap'
+        attribution: '© OpenStreetMap'
       }).addTo(map);
 
-      let markerLayer = L.layerGroup().addTo(map);
-
-      function zoomIn() {
-        map.zoomIn();
-      }
-
-      function zoomOut() {
-        map.zoomOut();
-      }
+      function zoomIn() { map.zoomIn(); }
+      function zoomOut() { map.zoomOut(); }
 
       function updateLastUpdateTime() {
         const now = new Date();
@@ -187,36 +191,95 @@
         document.getElementById('loading').style.display = show ? 'block' : 'none';
       }
 
-      function updateLegend() {
-        const pollutant = document.getElementById("pollutantSelect").value;
-        const legend = document.getElementById("legend");
-        legend.innerHTML = `
-          <h4>${pollutant.toUpperCase()} 濃度等級</h4>
-          <div class="legend-item">
-            <div class="legend-color" style="background-color: #2E8B57"></div>
-            <span>0-12</span>
-          </div>
-          <div class="legend-item">
-            <div class="legend-color" style="background-color: #9ACD32"></div>
-            <span>13-35</span>
-          </div>
-          <div class="legend-item">
-            <div class="legend-color" style="background-color: #FFD700"></div>
-            <span>36-54</span>
-          </div>
-          <div class="legend-item">
-            <div class="legend-color" style="background-color: #FFA500"></div>
-            <span>55-150</span>
-          </div>
-          <div class="legend-item">
-            <div class="legend-color" style="background-color: #FF4500"></div>
-            <span>151-250</span>
-          </div>
-          <div class="legend-item">
-            <div class="legend-color" style="background-color: #8B008B"></div>
-            <span>251+</span>
-          </div>
-        `;
+      function getCachedData() {
+        const cached = localStorage.getItem('airQualityData');
+        if (!cached) return null;
+        
+        const { data, timestamp } = JSON.parse(cached);
+        if (Date.now() - timestamp > CACHE_DURATION) {
+          localStorage.removeItem('airQualityData');
+          return null;
+        }
+        return data;
+      }
+
+      function cacheData(data) {
+        localStorage.setItem('airQualityData', JSON.stringify({
+          data,
+          timestamp: Date.now()
+        }));
+      }
+
+      function drawPointer(level) {
+        const canvas = document.getElementById("pointerCanvas");
+        const ctx = canvas.getContext("2d");
+        ctx.clearRect(0, 0, 200, 200);
+
+        ctx.beginPath();
+        ctx.arc(100, 100, 90, 0, 2 * Math.PI);
+        ctx.strokeStyle = "#ccc";
+        ctx.stroke();
+
+        for (let i = 0; i < 10; i++) {
+          let angle = (i * 36 - 90) * Math.PI / 180;
+          ctx.beginPath();
+          ctx.moveTo(100, 100);
+          ctx.lineTo(100 + 80 * Math.cos(angle), 100 + 80 * Math.sin(angle));
+          ctx.strokeStyle = i < level ? "red" : "#ccc";
+          ctx.stroke();
+        }
+
+        let angle = (level * 36 - 90) * Math.PI / 180;
+        ctx.beginPath();
+        ctx.moveTo(100, 100);
+        ctx.lineTo(100 + 60 * Math.cos(angle), 100 + 60 * Math.sin(angle));
+        ctx.strokeStyle = "black";
+        ctx.lineWidth = 3;
+        ctx.stroke();
+      }
+
+      function findNearestStation(latlng) {
+        if (!currentData) return null;
+        let nearest = null;
+        let minDist = Infinity;
+        for (const station of currentData) {
+          const dist = L.latLng(latlng).distanceTo([station.latitude, station.longitude]);
+          if (dist < minDist) {
+            minDist = dist;
+            nearest = station;
+          }
+        }
+        return nearest;
+      }
+
+      function updateHeatLayer(data, pollutant) {
+        if (heatLayer) {
+          map.removeLayer(heatLayer);
+        }
+        
+        const points = data.map(item => {
+          const lat = parseFloat(item.latitude);
+          const lon = parseFloat(item.longitude);
+          const value = parseFloat(item[pollutant]);
+          if (!lat || !lon || isNaN(value)) return null;
+          
+          const intensity = Math.min(value / 50, 1);
+          return [lat, lon, intensity];
+        }).filter(point => point !== null);
+
+        heatLayer = L.heatLayer(points, {
+          radius: 25,
+          blur: 15,
+          maxZoom: 10,
+          gradient: {
+            0.0: '#2E8B57',
+            0.2: '#9ACD32',
+            0.4: '#FFD700',
+            0.6: '#FFA500',
+            0.8: '#FF4500',
+            1.0: '#8B008B'
+          }
+        }).addTo(map);
       }
 
       function updateTrendChart(data) {
@@ -336,67 +399,92 @@
 
       async function fetchData() {
         try {
+          const now = Date.now();
+          if (now - lastFetchTime < 60000) {
+            console.log('請求太頻繁，使用快取資料');
+            return;
+          }
+
           toggleLoading(true);
+          console.log('開始請求資料...');
+          
+          const cachedData = getCachedData();
+          if (cachedData) {
+            console.log('使用快取資料');
+            currentData = cachedData;
+            updateLastUpdateTime();
+            updateHeatLayer(currentData, document.getElementById("pollutantSelect").value);
+            updateTrendChart(currentData);
+            toggleLoading(false);
+            return;
+          }
+
           const response = await fetch(apiUrl);
-          if (!response.ok) throw new Error('API 錯誤: ' + response.status);
+          console.log('API 響應狀態:', response.status);
+          
+          if (!response.ok) {
+            const errorText = await response.text();
+            console.error('API 錯誤詳情:', errorText);
+            throw new Error(`API 錯誤: ${response.status} - ${errorText}`);
+          }
+          
           const json = await response.json();
+          console.log('API 響應資料:', json);
+          
+          if (!json.records || !Array.isArray(json.records)) {
+            throw new Error('API 返回的資料格式不正確');
+          }
+          
           currentData = json.records;
-          renderMarkers(currentData);
-          updateTrendChart(currentData);
+          cacheData(currentData);
+          lastFetchTime = now;
+          
           updateLastUpdateTime();
-          updateLegend();
+          updateHeatLayer(currentData, document.getElementById("pollutantSelect").value);
+          updateTrendChart(currentData);
         } catch (error) {
           console.error('資料擷取失敗:', error);
-          alert('資料無法載入，請檢查 API 金鑰或網路連線。');
+          const cachedData = getCachedData();
+          if (cachedData) {
+            console.log('API 請求失敗，使用快取資料');
+            currentData = cachedData;
+            updateLastUpdateTime();
+            updateHeatLayer(currentData, document.getElementById("pollutantSelect").value);
+            updateTrendChart(currentData);
+          } else {
+            alert(`資料無法載入，錯誤詳情：${error.message}\n請檢查：\n1. API 金鑰是否正確\n2. 網路連線是否正常\n3. API 服務是否可用`);
+          }
         } finally {
           toggleLoading(false);
         }
       }
 
-      function renderMarkers(data) {
-        if (!data) return;
-        
-        markerLayer.clearLayers();
-        const pollutant = document.getElementById("pollutantSelect").value;
-
-        data.forEach((item) => {
-          const lat = parseFloat(item.latitude);
-          const lon = parseFloat(item.longitude);
-          const value = parseFloat(item[pollutant]);
-          if (!lat || !lon || isNaN(value)) return;
-
-          const color = getColor(value, pollutant);
-          const circle = L.circleMarker([lat, lon], {
-            radius: 8,
-            fillColor: color,
-            color: '#333',
-            weight: 1,
-            fillOpacity: 0.8,
-            className: 'marker-fade-in'
-          }).addTo(markerLayer);
-
-          const popupContent = `
-            <strong>${item.sitename}（${item.county}）</strong><br/>
-            ${pollutant.toUpperCase()}：${value}<br/>
-            狀態：${item.status}<br/>
-            時間：${item.datacreationdate}
-          `;
-          circle.bindPopup(popupContent);
-        });
-      }
-
       // 初始化
       fetchData();
       
-      // 設定每小時自動更新
-      setInterval(fetchData, 60 * 60 * 1000);
+      // 設定每5分鐘自動更新
+      setInterval(fetchData, 5 * 60 * 1000);
 
       // 監聽污染物選擇變化
       document.getElementById("pollutantSelect").addEventListener("change", () => {
         if (currentData) {
-          renderMarkers(currentData);
+          updateHeatLayer(currentData, document.getElementById("pollutantSelect").value);
           updateTrendChart(currentData);
-          updateLegend();
+        }
+      });
+
+      // 添加地圖點擊事件
+      map.on('click', function(e) {
+        const nearestStation = findNearestStation(e.latlng);
+        if (nearestStation) {
+          const value = parseFloat(nearestStation[document.getElementById("pollutantSelect").value]);
+          const level = Math.min(Math.floor(value / 10), 9) + 1;
+          drawPointer(level);
+          document.getElementById("stationInfo").innerHTML = `
+            <strong>${nearestStation.sitename}</strong><br/>
+            濃度：${value}<br/>
+            狀態：${nearestStation.status}
+          `;
         }
       });
     </script>
