@@ -2,7 +2,7 @@
 <html lang="zh-Hant">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
     <title>台灣空氣品質地圖</title>
     <link
       rel="stylesheet"
@@ -227,6 +227,96 @@
       .health-warning.danger {
         background: #f8d7da;
         color: #721c24;
+      }
+      
+      /* 新增手機版面配置 */
+      @media screen and (max-width: 768px) {
+        .top-container {
+          flex-direction: column;
+          height: auto;
+        }
+        
+        .left-panel {
+          width: 100%;
+          padding: 10px;
+        }
+        
+        .right-panel {
+          width: 100%;
+          height: 50vh;
+          position: relative;
+        }
+        
+        #map {
+          position: relative;
+          width: 100%;
+          height: 50vh;
+          right: auto;
+        }
+        
+        .pointer-panel {
+          position: relative;
+          top: auto;
+          right: auto;
+          width: calc(100% - 24px);
+          margin: 10px auto;
+          height: auto;
+          min-height: 200px;
+        }
+        
+        .station-info-panel {
+          position: relative;
+          top: auto;
+          right: auto;
+          width: calc(100% - 24px);
+          margin: 10px auto;
+        }
+        
+        .heatmap-legend,
+        .heatmap-legend-labels {
+          display: none;
+        }
+        
+        .bottom-container {
+          height: 50vh;
+          padding: 10px;
+        }
+        
+        .chart-container {
+          padding: 10px;
+        }
+        
+        h1 {
+          font-size: 1.5em;
+          margin: 10px 0;
+        }
+        
+        .selector {
+          margin: 10px 0;
+        }
+        
+        .map-controls {
+          z-index: 1000;
+        }
+        
+        .map-controls button {
+          padding: 8px 12px;
+          font-size: 16px;
+        }
+        
+        .scale-item {
+          padding: 8px;
+        }
+        
+        .scale-label,
+        .scale-value {
+          font-size: 14px;
+        }
+        
+        .health-warning {
+          font-size: 14px;
+          padding: 10px;
+        }
       }
     </style>
   </head>
