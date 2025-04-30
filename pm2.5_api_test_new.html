@@ -25,12 +25,21 @@
       .top-container {
         display: flex;
         width: 100%;
-        height: 40vh;
+        height: 35vh;
       }
       .left-panel {
         width: 75%;
         padding: 20px;
         box-sizing: border-box;
+        display: flex;
+        flex-direction: column;
+      }
+      .header-section {
+        margin-bottom: 10px;
+      }
+      .pointer-section {
+        display: flex;
+        gap: 20px;
       }
       .right-panel {
         position: relative;
@@ -41,37 +50,61 @@
         top: 0;
         right: 0;
         width: 25vw;
-        height: 40vh;
+        height: 35vh;
         border-radius: 8px;
         box-shadow: 0 2px 10px rgba(0,0,0,0.1);
       }
-      .info {
-        margin-bottom: 20px;
+      .heatmap-legend {
+        position: absolute;
+        top: 0;
+        right: 26vw;
+        width: 30px;
+        height: 35vh;
+        background: linear-gradient(to bottom, #8B008B 0%, #FF4500 20%, #FFA500 40%, #FFD700 60%, #9ACD32 80%, #2E8B57 100%);
+        border: 1px solid #ccc;
+        border-radius: 4px;
+        box-shadow: 0 0 5px rgba(0,0,0,0.2);
       }
-      h1 {
-        margin: 0;
-        font-size: 24px;
+      .heatmap-legend-labels {
+        position: absolute;
+        top: 0;
+        right: 26vw;
+        width: 60px;
+        height: 35vh;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        font-size: 12px;
+        color: #333;
       }
-      .selector, .update-time {
-        margin: 10px 0;
+      .heatmap-legend-labels span {
+        text-shadow: 1px 1px 1px #fff;
       }
       .pointer-panel {
-        position: relative;
-        width: 200px;
-        height: 200px;
+        position: absolute;
+        top: 0;
+        right: 32vw;
+        width: 250px;
+        height: 35vh;
         background: #fff;
         border-radius: 8px;
-        padding: 10px;
+        padding: 12px;
         box-shadow: 0 0 8px rgba(0,0,0,0.2);
+        margin-top: 20px;
       }
-      #pointerCanvas {
-        width: 100%;
-        height: 100%;
+      .station-info-panel {
+        position: absolute;
+        top: 0;
+        right: 52vw;
+        width: 200px;
+        background: #fff;
+        border-radius: 8px;
+        padding: 12px;
+        box-shadow: 0 0 8px rgba(0,0,0,0.2);
       }
       .station-info {
         font-size: 0.9em;
         color: #333;
-        margin-top: 8px;
       }
       .bottom-container {
         width: 100%;
@@ -117,32 +150,148 @@
         box-shadow: 0 4px 15px rgba(0,0,0,0.1);
         z-index: 1000;
       }
+      .pointer-table {
+        width: 100%;
+        height: 100%;
+        position: relative;
+        background: #f8f8f8;
+        border-radius: 4px;
+        padding: 10px;
+      }
+      .pointer-scale {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 100%;
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+      }
+      .scale-item {
+        position: relative;
+        height: 20%;
+        display: flex;
+        align-items: center;
+        padding: 0 10px;
+        border-left: 2px solid #ddd;
+      }
+      .scale-item.warning {
+        background: rgba(255,0,0,0.1);
+        border-left-color: #ff4500;
+      }
+      .scale-item.danger {
+        background: rgba(139,0,139,0.1);
+        border-left-color: #8b008b;
+      }
+      .scale-label {
+        position: absolute;
+        left: 10px;
+        font-size: 12px;
+        color: #666;
+      }
+      .scale-value {
+        position: absolute;
+        right: 10px;
+        font-size: 12px;
+        color: #333;
+      }
+      .pointer {
+        position: absolute;
+        left: 0;
+        width: 0;
+        height: 0;
+        border-style: solid;
+        border-width: 8px 12px 8px 0;
+        border-color: transparent #333 transparent transparent;
+        transform: translateY(0);
+        transition: transform 0.5s ease;
+      }
+      .health-warning {
+        position: absolute;
+        bottom: 10px;
+        left: 10px;
+        right: 10px;
+        padding: 8px;
+        background: #fff;
+        border-radius: 4px;
+        font-size: 12px;
+        color: #333;
+        text-align: center;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+      }
+      .health-warning.warning {
+        background: #fff3cd;
+        color: #856404;
+      }
+      .health-warning.danger {
+        background: #f8d7da;
+        color: #721c24;
+      }
     </style>
   </head>
   <body>
     <div class="top-container">
       <div class="left-panel">
-        <h1>🌏 台灣空氣品質地圖</h1>
-        <div class="update-time" id="lastUpdate"></div>
-        <div class="selector">
-          顯示污染物：
-          <select id="pollutantSelect">
-            <option value="aqi">AQI</option>
-            <option value="pm2.5">PM2.5</option>
-            <option value="pm10">PM10</option>
-            <option value="o3">O₃</option>
-            <option value="co">CO</option>
-            <option value="so2">SO₂</option>
-            <option value="no2">NO₂</option>
-          </select>
-        </div>
-        <div class="pointer-panel">
-          <canvas id="pointerCanvas" width="200" height="200"></canvas>
-          <div class="station-info" id="stationInfo"></div>
+        <div class="header-section">
+          <h1>🌏 台灣空氣品質地圖</h1>
+          <div id="lastUpdate" class="update-time"></div>
+          <div class="selector">
+            顯示污染物：
+            <select id="pollutantSelect">
+              <option value="aqi">AQI</option>
+              <option value="pm2.5">PM2.5</option>
+              <option value="pm10">PM10</option>
+              <option value="o3">O₃</option>
+              <option value="co">CO</option>
+              <option value="so2">SO₂</option>
+              <option value="no2">NO₂</option>
+            </select>
+          </div>
         </div>
       </div>
       <div class="right-panel">
         <div id="map"></div>
+        <div class="pointer-panel">
+          <div class="pointer-table">
+            <div class="pointer-scale">
+              <div class="scale-item danger">
+                <span class="scale-label">非常不健康</span>
+                <span class="scale-value">250+</span>
+              </div>
+              <div class="scale-item warning">
+                <span class="scale-label">不健康</span>
+                <span class="scale-value">151-250</span>
+              </div>
+              <div class="scale-item">
+                <span class="scale-label">普通</span>
+                <span class="scale-value">55-150</span>
+              </div>
+              <div class="scale-item">
+                <span class="scale-label">良好</span>
+                <span class="scale-value">36-54</span>
+              </div>
+              <div class="scale-item">
+                <span class="scale-label">優良</span>
+                <span class="scale-value">0-35</span>
+              </div>
+            </div>
+            <div class="pointer" id="pointer"></div>
+            <div class="health-warning" id="healthWarning">請點擊地圖查看空氣品質</div>
+          </div>
+        </div>
+        <div class="station-info-panel">
+          <div id="stationInfo" class="station-info">請點擊地圖選擇測站</div>
+        </div>
+        <div class="heatmap-legend"></div>
+        <div class="heatmap-legend-labels">
+          <span>500+</span>
+          <span>250</span>
+          <span>150</span>
+          <span>54</span>
+          <span>35</span>
+          <span>0</span>
+        </div>
         <div class="map-controls">
           <button onclick="zoomIn()">+</button>
           <button onclick="zoomOut()">-</button>
@@ -154,20 +303,19 @@
         <canvas id="trendChart"></canvas>
       </div>
     </div>
-    <div class="loading" id="loading">資料更新中...</div>
+    <div id="loading" class="loading">資料更新中...</div>
 
     <script>
       const apiKey = 'a6528ecc-9e31-4e96-9f4a-8410d0c54436';
-      // 使用 CORS 代理
-      const apiUrl = `https://cors-anywhere.herokuapp.com/https://data.moenv.gov.tw/api/v2/aqx_p_488?limit=1000&api_key=${apiKey}`;
+      const apiUrl = `https://data.moenv.gov.tw/api/v2/aqx_p_488?limit=1000&api_key=${apiKey}`;
       
-      // 添加測試資料
+      // 添加更多測試資料
       const testData = [
         {
           "sitename": "台北",
           "county": "台北市",
           "aqi": "80",
-          "pm2_5": "25",
+          "pm2.5": "25",
           "pm10": "30",
           "o3": "45",
           "co": "0.5",
@@ -181,7 +329,7 @@
           "sitename": "台中",
           "county": "台中市",
           "aqi": "65",
-          "pm2_5": "20",
+          "pm2.5": "20",
           "pm10": "25",
           "o3": "40",
           "co": "0.4",
@@ -190,6 +338,20 @@
           "latitude": "24.1477",
           "longitude": "120.6736",
           "status": "良好"
+        },
+        {
+          "sitename": "高雄",
+          "county": "高雄市",
+          "aqi": "75",
+          "pm2.5": "30",
+          "pm10": "35",
+          "o3": "50",
+          "co": "0.6",
+          "so2": "0.12",
+          "no2": "18",
+          "latitude": "22.6200",
+          "longitude": "120.3000",
+          "status": "普通"
         }
       ];
 
@@ -198,6 +360,8 @@
       let heatLayer = null;
       let lastFetchTime = 0;
       const CACHE_DURATION = 5 * 60 * 1000; // 5分鐘快取
+      let retryCount = 0;
+      const MAX_RETRIES = 3;
 
       const map = L.map('map').setView([23.7, 121], 7);
       L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
@@ -245,54 +409,70 @@
       }
 
       function drawPointer(level) {
-        const canvas = document.getElementById("pointerCanvas");
-        const ctx = canvas.getContext("2d");
+        const canvas = document.getElementById('pointerCanvas');
+        const ctx = canvas.getContext('2d');
         ctx.clearRect(0, 0, 200, 200);
-
+        
         // 繪製基礎圓圈
         ctx.beginPath();
         ctx.arc(100, 100, 90, 0, 2 * Math.PI);
-        ctx.strokeStyle = "#ccc";
+        ctx.strokeStyle = '#ccc';
         ctx.stroke();
-
+        
         // 繪製刻度
         for (let i = 0; i < 10; i++) {
           let angle = (i * 36 - 90) * Math.PI / 180;
           ctx.beginPath();
           ctx.moveTo(100, 100);
           ctx.lineTo(100 + 80 * Math.cos(angle), 100 + 80 * Math.sin(angle));
-          ctx.strokeStyle = i < level ? "red" : "#ccc";
+          ctx.strokeStyle = i < level ? 'red' : '#ccc';
           ctx.stroke();
         }
-
+        
         // 繪製指針
         let angle = (level * 36 - 90) * Math.PI / 180;
         ctx.beginPath();
         ctx.moveTo(100, 100);
         ctx.lineTo(100 + 60 * Math.cos(angle), 100 + 60 * Math.sin(angle));
-        ctx.strokeStyle = "black";
+        ctx.strokeStyle = 'black';
         ctx.lineWidth = 3;
         ctx.stroke();
       }
 
+      function calculatePointerLevel(value) {
+        return Math.min(Math.floor(value / Math.max(value, 10)), 9) + 1;
+      }
+
       function findNearestStation(latlng) {
-        if (!currentData) return null;
         let nearest = null;
         let minDist = Infinity;
-        for (const station of currentData) {
+        currentData.forEach(station => {
           const dist = L.latLng(latlng).distanceTo([station.latitude, station.longitude]);
           if (dist < minDist) {
             minDist = dist;
             nearest = station;
           }
-        }
+        });
         return nearest;
       }
+
+      // 定義不同污染物的數值範圍和單位
+      const pollutantRanges = {
+        'aqi':     { ranges: [0,    50,   100,   150,   200,   300,   500], unit: '' },
+        'pm2.5':   { ranges: [0,    12,   35.4,  55.4, 150.4, 250.4, 500], unit: 'μg/m³' },
+        'pm10':    { ranges: [0,    54,   154,   254,  354,   424,   604], unit: 'μg/m³' },
+        'o3':      { ranges: [0,    54,   70,    85,   105,   200,   400], unit: 'ppb' },
+        'co':      { ranges: [0,    4.4,  9.4,   12.4,  15.4,  30.4,  50], unit: 'ppm' },
+        'so2':     { ranges: [0,    35,   75,   185,   304,   604,   1000], unit: 'ppb' },
+        'no2':     { ranges: [0,    53,   100,  360,   649,   1249,  2000], unit: 'ppb' }
+      };
 
       function updateHeatLayer(data, pollutant) {
         if (heatLayer) {
           map.removeLayer(heatLayer);
         }
+        
+        const { ranges } = pollutantRanges[pollutant] || pollutantRanges['aqi'];
         
         const points = data.map(item => {
           const lat = parseFloat(item.latitude);
@@ -300,7 +480,22 @@
           const value = parseFloat(item[pollutant]);
           if (!lat || !lon || isNaN(value)) return null;
           
-          const intensity = Math.min(value / 100, 1);
+          // 根據不同區段計算強度
+          let intensity;
+          if (value <= ranges[1]) {
+            intensity = 1.0;  // 深綠
+          } else if (value <= ranges[2]) {
+            intensity = 0.8;  // 淺綠
+          } else if (value <= ranges[3]) {
+            intensity = 0.6;  // 黃色
+          } else if (value <= ranges[4]) {
+            intensity = 0.4;  // 橙色
+          } else if (value <= ranges[5]) {
+            intensity = 0.2;  // 紅色
+          } else {
+            intensity = 0.0;  // 紫色
+          }
+          
           return [lat, lon, intensity];
         }).filter(point => point !== null);
 
@@ -310,12 +505,12 @@
             blur: 15,
             maxZoom: 10,
             gradient: {
-              0.0: '#2E8B57',
-              0.2: '#9ACD32',
-              0.4: '#FFD700',
-              0.6: '#FFA500',
-              0.8: '#FF4500',
-              1.0: '#8B008B'
+              0.0: '#8B008B',  // 紫色
+              0.2: '#FF4500',  // 紅色
+              0.4: '#FFA500',  // 橙色
+              0.6: '#FFD700',  // 黃色
+              0.8: '#9ACD32',  // 淺綠
+              1.0: '#2E8B57'   // 深綠
             }
           }).addTo(map);
         } else {
@@ -331,6 +526,15 @@
             }).addTo(map);
           });
         }
+
+        // 更新漸變條標籤
+        const labels = document.querySelectorAll('.heatmap-legend-labels span');
+        labels[0].textContent = `${ranges[6]}+`;
+        labels[1].textContent = ranges[5];
+        labels[2].textContent = ranges[4];
+        labels[3].textContent = ranges[3];
+        labels[4].textContent = ranges[2];
+        labels[5].textContent = ranges[1];
       }
 
       function updateTrendChart(data) {
@@ -480,6 +684,73 @@
         return '#333';
       }
 
+      function getStatus(value, ranges) {
+        if (value > ranges[5]) {
+          return { status: '非常不健康', class: 'danger' };
+        } else if (value > ranges[4]) {
+          return { status: '不健康', class: 'warning' };
+        } else if (value > ranges[3]) {
+          return { status: '普通', class: '' };
+        } else if (value > ranges[2]) {
+          return { status: '良好', class: '' };
+        } else {
+          return { status: '優良', class: '' };
+        }
+      }
+
+      function updatePointer(value, pollutant) {
+        const { ranges, unit } = pollutantRanges[pollutant] || pollutantRanges['aqi'];
+        const scaleHeight = document.querySelector('.pointer-scale').offsetHeight;
+        const pointer = document.getElementById('pointer');
+
+        // 更新指針刻度標籤
+        const scaleItems = document.querySelectorAll('.scale-item');
+        scaleItems[0].querySelector('.scale-value').textContent = `${ranges[5]}+ ${unit}`;
+        scaleItems[1].querySelector('.scale-value').textContent = `${ranges[4]}-${ranges[5]} ${unit}`;
+        scaleItems[2].querySelector('.scale-value').textContent = `${ranges[3]}-${ranges[4]} ${unit}`;
+        scaleItems[3].querySelector('.scale-value').textContent = `${ranges[2]}-${ranges[3]} ${unit}`;
+        scaleItems[4].querySelector('.scale-value').textContent = `${ranges[1]}-${ranges[2]} ${unit}`;
+
+        // 根據不同區段計算位置（從下到上，從低到高）
+        let targetY;
+        if (value <= ranges[1]) {
+          targetY = scaleHeight - (value / ranges[1]) * (scaleHeight * 0.2);
+        } else if (value <= ranges[2]) {
+          targetY = scaleHeight * 0.8 - ((value - ranges[1]) / (ranges[2] - ranges[1])) * (scaleHeight * 0.2);
+        } else if (value <= ranges[3]) {
+          targetY = scaleHeight * 0.6 - ((value - ranges[2]) / (ranges[3] - ranges[2])) * (scaleHeight * 0.2);
+        } else if (value <= ranges[4]) {
+          targetY = scaleHeight * 0.4 - ((value - ranges[3]) / (ranges[4] - ranges[3])) * (scaleHeight * 0.2);
+        } else {
+          targetY = scaleHeight * 0.2 - Math.min((value - ranges[4]) / (ranges[5] - ranges[4]), 1) * (scaleHeight * 0.2);
+        }
+
+        pointer.style.top = `${targetY}px`;
+
+        // 更新健康警告
+        const warningElement = document.getElementById('healthWarning');
+        const status = getStatus(value, ranges);
+        warningElement.className = `health-warning ${status.class}`;
+        
+        switch (status.status) {
+          case '非常不健康':
+            warningElement.textContent = '⚠️ 非常不健康：應避免外出，關閉門窗，使用空氣清淨機';
+            break;
+          case '不健康':
+            warningElement.textContent = '⚠️ 不健康：敏感族群應減少外出，一般民眾應減少戶外活動';
+            break;
+          case '普通':
+            warningElement.textContent = '普通：一般民眾可正常活動，敏感族群應注意身體狀況';
+            break;
+          case '良好':
+            warningElement.textContent = '良好：適合一般戶外活動';
+            break;
+          case '優良':
+            warningElement.textContent = '優良：適合所有戶外活動';
+            break;
+        }
+      }
+
       async function fetchData() {
         try {
           const now = Date.now();
@@ -503,32 +774,38 @@
           }
 
           try {
-            const response = await fetch(apiUrl, {
-              headers: {
-                'X-Requested-With': 'XMLHttpRequest'
-              }
-            });
+            const response = await fetch(apiUrl);
             
             if (!response.ok) {
               throw new Error(`API 錯誤: ${response.status}`);
             }
             
             const json = await response.json();
-            currentData = json.records;
+            if (json.records && json.records.length > 0) {
+              currentData = json.records;
+              cacheData(currentData);
+              lastFetchTime = now;
+              retryCount = 0;
+            } else {
+              throw new Error('API 返回空資料');
+            }
           } catch (error) {
-            console.warn('API 請求失敗，使用測試資料:', error);
+            console.warn('API 請求失敗:', error);
+            if (retryCount < MAX_RETRIES) {
+              retryCount++;
+              console.log(`重試中 (${retryCount}/${MAX_RETRIES})...`);
+              setTimeout(fetchData, 5000);
+              return;
+            }
+            console.warn('達到最大重試次數，使用測試資料');
             currentData = testData;
           }
-          
-          cacheData(currentData);
-          lastFetchTime = now;
           
           updateLastUpdateTime();
           updateHeatLayer(currentData, document.getElementById("pollutantSelect").value);
           updateTrendChart(currentData);
         } catch (error) {
           console.error('資料處理失敗:', error);
-          alert(`資料處理失敗：${error.message}\n使用測試資料繼續顯示`);
           currentData = testData;
           updateLastUpdateTime();
           updateHeatLayer(currentData, document.getElementById("pollutantSelect").value);
@@ -537,6 +814,32 @@
           toggleLoading(false);
         }
       }
+
+      // 修改地圖點擊事件處理
+      map.on('click', function(e) {
+        const nearestStation = findNearestStation(e.latlng);
+        if (nearestStation) {
+          const pollutant = document.getElementById("pollutantSelect").value;
+          const value = parseFloat(nearestStation[pollutant]);
+          const { ranges, unit } = pollutantRanges[pollutant] || pollutantRanges['aqi'];
+          
+          if (!isNaN(value)) {
+            updatePointer(value, pollutant);
+            const status = getStatus(value, ranges);
+            document.getElementById("stationInfo").innerHTML = `
+              <strong>${nearestStation.sitename}</strong><br/>
+              ${pollutant.toUpperCase()}：${value} ${unit}<br/>
+              狀態：<span class="${status.class}">${status.status}</span>
+            `;
+          } else {
+            updatePointer(0, pollutant);
+            document.getElementById("stationInfo").innerHTML = `
+              <strong>${nearestStation.sitename}</strong><br/>
+              無 ${pollutant.toUpperCase()} 資料
+            `;
+          }
+        }
+      });
 
       // 初始化
       fetchData();
@@ -549,34 +852,15 @@
         if (currentData) {
           updateHeatLayer(currentData, document.getElementById("pollutantSelect").value);
           updateTrendChart(currentData);
+          // 重置指針顯示
+          updatePointer(0, document.getElementById("pollutantSelect").value);
+          // 重置測站資訊
+          document.getElementById("stationInfo").innerHTML = '請點擊地圖選擇測站';
         }
       });
 
-      // 修改地圖點擊事件處理
-      map.on('click', function(e) {
-        const nearestStation = findNearestStation(e.latlng);
-        if (nearestStation) {
-          const pollutant = document.getElementById("pollutantSelect").value;
-          const value = parseFloat(nearestStation[pollutant]);
-          
-          // 根據不同污染物調整指針等級計算
-          let level;
-          if (pollutant === 'pm2.5' || pollutant === 'pm10') {
-            level = Math.min(Math.floor(value / 10), 9) + 1;
-          } else if (pollutant === 'aqi') {
-            level = Math.min(Math.floor(value / 25), 9) + 1;
-          } else {
-            level = Math.min(Math.floor(value / 20), 9) + 1;
-          }
-          
-          drawPointer(level);
-          document.getElementById("stationInfo").innerHTML = `
-            <strong>${nearestStation.sitename}</strong><br/>
-            ${pollutant.toUpperCase()}：${value}<br/>
-            狀態：${nearestStation.status}
-          `;
-        }
-      });
+      // 初始化指針
+      updatePointer(0, 'pm2.5');
     </script>
   </body>
 </html>
